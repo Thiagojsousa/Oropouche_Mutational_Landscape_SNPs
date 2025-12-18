@@ -1,4 +1,4 @@
-# Oropouche SNP Mutational Landscape (L / M / S)
+# Oropouche SNPs Landscape (L / M / S)
 
 [![R](https://img.shields.io/badge/R-%E2%89%A5%204.1-blue)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#license)
