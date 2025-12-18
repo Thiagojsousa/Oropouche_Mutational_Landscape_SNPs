@@ -69,7 +69,7 @@ An **R** pipeline to catalogue SNPs (with coding impact) and generate a *publica
 
 ---
 
-## How to run (manual execution in RStudio)
+## How to run
 
 This pipeline is intended for **interactive execution in RStudio**.
 
