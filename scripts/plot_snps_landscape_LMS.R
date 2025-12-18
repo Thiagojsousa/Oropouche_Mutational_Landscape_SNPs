@@ -11,9 +11,12 @@ PARAM_PLOT <- list(
   out_dir_fig    = "Figures",
   ncol_facets    = 2,
   width_in       = 10,
-  height_in      = 6,
+  height_in      = 4,
   dpi_png        = 600
 )
+
+#Fasta header
+header_prefixes = c("Node_", "Seq_")  #(ex.: c("Node_") ou c("Seq_","Sample_"))
 
 setwd(PARAM_PLOT$workdir)
 
@@ -92,12 +95,26 @@ dados <- dados_raw %>%
   ) %>%
   filter(!is.na(Amino_position))
 
-# 6) Automatically order headers (Seq_01, Seq_02, ...) ----
-headers <- unique(dados$Header)
-if (all(grepl("^Seq_\\d+$", headers))) {
-  headers <- headers[order(as.integer(sub("^Seq_", "", headers)))]
+# 6) Automatically order headers by prefix + numeric suffix (e.g., Node_01, Seq_02) ----
+order_headers_by_prefix <- function(headers, prefixes) {
+  prefixes <- prefixes[!is.na(prefixes) & nzchar(prefixes)]
+  if (length(prefixes) == 0) return(headers)
+  
+  # build regex: ^(Node_|Seq_)\d+$
+  prefix_regex <- paste0("^(", paste0(stringr::str_replace_all(prefixes, 
+   "([\\^\\$\\.|\\(\\)\\[\\]\\*\\+\\?\\\\])", "\\\\\\1"), collapse = "|"), ")")
+  full_regex   <- paste0(prefix_regex, "\\d+$")
+  
+  if (!all(grepl(full_regex, headers))) return(headers)
+  
+  # extract numeric suffix and order
+  nums <- as.integer(sub(prefix_regex, "", headers))
+  headers[order(nums)]
 }
-dados$Header <- factor(dados$Header, levels = headers)
+
+headers <- unique(dados$Header)
+headers_sorted <- order_headers_by_prefix(headers, PARAM_PLOT$header_prefixes)
+dados$Header <- factor(dados$Header, levels = headers_sorted)
 
 # 7) Aggregate (avoid duplicates) and define y positions ----
 dados_plot <- dados %>%
@@ -126,30 +143,24 @@ p <- ggplot(dados_plot, aes(x = Amino_position, y = y_point)) +
   geom_segment(aes(xend = Amino_position, y = y_bottom, yend = y_top),
                color = "grey80", linewidth = 0.4) +
   
-  # mutation-type points (Syn/Unk filled; Nonsyn open circle)
+  # Syn/Unk: filled points
   geom_point(
     data = subset(dados_plot, Mutation_type != "Nonsyn"),
     aes(color = Mutation_type),
     size = 2
   ) +
-  geom_point(
-    data = subset(dados_plot, Mutation_type == "Nonsyn"),
-    aes(color = Mutation_type),
-    shape = 1, size = 3, stroke = 1
-  ) +
   
+  # Nonsyn: coloured border + UGENE fill (single layer only)
   geom_point(
     data = subset(dados_plot, Mutation_type == "Nonsyn"),
-    aes(fill = AA_class_alt),
-    shape = 21, size = 3.2, color = "#e31a1c",
-    inherit.aes = TRUE
+    aes(color = Mutation_type, fill = AA_class_alt),
+    shape = 21, size = 3.2, stroke = 1
   ) +
   
   geom_text(
     data = subset(dados_plot, Mutation_type == "Nonsyn"),
     aes(y = y_label, label = Amino_label),
-    size = 2, vjust = 0, fontface = "plain",
-    inherit.aes = TRUE
+    size = 2, vjust = 0, fontface = "plain"
   ) +
   
   scale_y_continuous(
@@ -164,7 +175,7 @@ p <- ggplot(dados_plot, aes(x = Amino_position, y = y_point)) +
   ) +
   
   scale_color_manual(
-    name   = "",
+    name   = "SNPs landscape of L, M and S segments",
     breaks = c("Syn", "Nonsyn", "Unk"),
     values = c(Syn = "#1f78b4", Nonsyn = "#e31a1c", Unk = "grey50"),
     labels = c(
@@ -175,23 +186,32 @@ p <- ggplot(dados_plot, aes(x = Amino_position, y = y_point)) +
   ) +
   
   scale_fill_manual(
-    name     = "",
+    name     = NULL,
+    breaks   = names(ugene_colors),
     values   = ugene_colors,
     na.value = "white"
-  )  +  
+  ) +
+  
+  guides(
+    color = guide_legend(order = 1, title.position = "top"),
+    fill  = guide_legend(order = 2, title = NULL)
+  ) +
   
   facet_wrap(~ Header, ncol = PARAM_PLOT$ncol_facets) +
   
-  ggtitle("Mutational landscape of L, M and S segments") +
   theme_bw(base_size = 12) +
   theme(
     panel.grid.minor   = element_blank(),
     panel.grid.major.y = element_blank(),
     strip.background   = element_rect(fill = "grey90"),
     strip.text         = element_text(face = "bold"),
+    
     legend.position    = "top",
     legend.box         = "vertical",
-    plot.title         = element_text(hjust = 0.5, face = "bold")
+    legend.box.spacing = grid::unit(0, "lines"),
+    legend.spacing.y   = grid::unit(0, "lines"),
+    legend.margin      = margin(0, 0, 0, 0),
+    legend.box.margin  = margin(t = -2, r = 0, b = 0, l = 0)
   )
 
 print(p)
