@@ -60,8 +60,8 @@
 PARAM <- list(
   
   ## 1.1) Working directory (where FASTAs are located and where outputs will be written) ----
-  workdir = "/home/user/folder_path",
-  output_dir = "/home/user/folder_path/output_files",
+  workdir = "/home/bioinfo/git_thiagojsousa",
+  output_dir = "/home/bioinfo/git_thiagojsousa/output_files",
   
   ## 1.2) Segments: aligned FASTA, reference header, strand, and output ----
   segments = list(
@@ -451,13 +451,22 @@ merged_LMS <- dplyr::bind_rows(all_results) %>%
   dplyr::mutate(SEGMENT = CHROM) %>%
   dplyr::arrange(SAMPLE, SEGMENT, POS)
 
+# write merged catalogue
 merged_out_path <- file.path(PARAM$output_dir, PARAM$merged_out_csv)
 readr::write_csv(merged_LMS, merged_out_path)
 
+# build + write summary (same as before)
+summary_LMS <- merged_LMS %>%
+  dplyr::group_by(SAMPLE, SEGMENT, EFFECT) %>%
+  dplyr::summarise(N = dplyr::n(), .groups = "drop") %>%
+  dplyr::arrange(SAMPLE, SEGMENT, dplyr::desc(N))
+
 summary_out_csv  <- sub("\\.csv$", "_summary.csv", PARAM$merged_out_csv)
 summary_out_path <- file.path(PARAM$output_dir, summary_out_csv)
+readr::write_csv(summary_LMS, summary_out_path)
 
 if (verbose) {
   message("Merged catalogue: ", merged_out_path)
   message("Summary table:   ", summary_out_path)
+  print(summary_LMS)
 }
