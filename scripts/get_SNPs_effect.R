@@ -60,8 +60,8 @@
 PARAM <- list(
   
   ## 1.1) Working directory (where FASTAs are located and where outputs will be written) ----
-  workdir = "/home/bioinfo/git_thiagojsousa",
-  output_dir = "/home/bioinfo/git_thiagojsousa/output_files",
+  workdir = "/home/user/folder_path",
+  output_dir = "/home/user/folder_path/output_files",
   
   ## 1.2) Segments: aligned FASTA, reference header, strand, and output ----
   segments = list(
